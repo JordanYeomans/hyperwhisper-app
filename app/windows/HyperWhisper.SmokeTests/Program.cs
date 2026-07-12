@@ -18,6 +18,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Windows;
 using HyperWhisper.Data;
 using HyperWhisper.Data.Entities;
@@ -99,6 +100,163 @@ internal static class Program
                     "100MB → 5min + 300s");
                 Assert(GrokSttService.GetRequestTimeout(600L * 1024 * 1024) == TimeSpan.FromMinutes(30),
                     "600MB → capped at 30min");
+            });
+
+            Run("OpenAI post-processing omits an output-token cap", () =>
+            {
+                var requestJson = PostProcessingService.BuildOpenAIRequestJson(
+                    "gpt-4.1-nano", "system", "user");
+                using var request = JsonDocument.Parse(requestJson);
+
+                Assert(!request.RootElement.TryGetProperty("max_tokens", out _),
+                    "OpenAI request should not contain max_tokens");
+                Assert(!request.RootElement.TryGetProperty("max_completion_tokens", out _),
+                    "OpenAI request should not contain max_completion_tokens");
+            });
+
+            // These checks call straight into the generated FFI surface
+            // (HyperwhisperCoreMethods.EvaluateLlmResponseJson / EvaluateCompletion /
+            // NormalizeTermination), which doubles as the uniffi API-checksum drift
+            // gate for the completion-policy functions on the real Windows DLL.
+
+            Run("OpenAI wire: complete + wrapped content is accepted", () =>
+            {
+                const string raw = "raw transcript";
+                var evaluation = HyperwhisperCoreMethods.EvaluateLlmResponseJson(
+                    WireProtocol.OpenAiChat,
+                    """{"choices":[{"message":{"content":"<<CLEANED>>clean transcript<<END>>"},"finish_reason":"stop"}]}""",
+                    raw);
+
+                Assert(evaluation.accepted, $"rejected as {evaluation.failure}");
+                Assert(evaluation.text == "clean transcript", $"got '{evaluation.text}'");
+            });
+
+            Run("OpenAI wire: finish_reason=length is rejected and returns original", () =>
+            {
+                const string raw = "complete raw transcript";
+                var evaluation = HyperwhisperCoreMethods.EvaluateLlmResponseJson(
+                    WireProtocol.OpenAiChat,
+                    """{"choices":[{"message":{"content":"<<CLEANED>>partial output"},"finish_reason":"length"}]}""",
+                    raw);
+
+                Assert(!evaluation.accepted, "length response should be rejected");
+                Assert(evaluation.text == raw, "raw transcript was not preserved");
+                Assert(evaluation.failure == CompletionFailure.OutputLimit, $"failure {evaluation.failure}");
+            });
+
+            Run("OpenAI wire: missing finish_reason proceeds (Unspecified)", () =>
+            {
+                Assert(
+                    HyperwhisperCoreMethods.NormalizeTermination(WireProtocol.OpenAiChat, null) == CompletionState.Unspecified,
+                    "missing finish_reason should normalize to Unspecified");
+
+                const string raw = "raw transcript";
+                var evaluation = HyperwhisperCoreMethods.EvaluateLlmResponseJson(
+                    WireProtocol.OpenAiChat,
+                    """{"choices":[{"message":{"content":"<<CLEANED>>clean<<END>>"}}]}""",
+                    raw);
+
+                Assert(evaluation.accepted, $"missing finish_reason should still proceed to lenient evaluation, got {evaluation.failure}");
+                Assert(evaluation.text == "clean", $"got '{evaluation.text}'");
+            });
+
+            Run("OpenAI wire: markerless content is accepted (lenient variant matching)", () =>
+            {
+                const string raw = "raw transcript";
+                var evaluation = HyperwhisperCoreMethods.EvaluateLlmResponseJson(
+                    WireProtocol.OpenAiChat,
+                    """{"choices":[{"message":{"content":"clean transcript, no markers"},"finish_reason":"stop"}]}""",
+                    raw);
+
+                Assert(evaluation.accepted, $"markerless complete content should be accepted leniently, got {evaluation.failure}");
+                Assert(evaluation.text == "clean transcript, no markers", $"got '{evaluation.text}'");
+            });
+
+            Run("OpenAI wire: malformed JSON is rejected and returns original", () =>
+            {
+                const string raw = "complete raw transcript";
+                var evaluation = HyperwhisperCoreMethods.EvaluateLlmResponseJson(
+                    WireProtocol.OpenAiChat,
+                    "not json",
+                    raw);
+
+                Assert(!evaluation.accepted, "malformed body should be rejected");
+                Assert(evaluation.text == raw, "raw transcript was not preserved");
+            });
+
+            Run("wrapped prompt leakage is rejected", () =>
+            {
+                const string raw = "raw transcript";
+                var evaluation = HyperwhisperCoreMethods.EvaluateLlmResponseJson(
+                    WireProtocol.OpenAiChat,
+                    """{"choices":[{"message":{"content":"<<CLEANED>><APPLICATION_CONTEXT>\nApp: Mail\n</APPLICATION_CONTEXT><<END>>"},"finish_reason":"stop"}]}""",
+                    raw);
+
+                Assert(!evaluation.accepted, "leaked application-context content should be rejected");
+                Assert(evaluation.text == raw, "raw transcript was not preserved");
+                Assert(evaluation.failure == CompletionFailure.PromptLeakage, $"failure {evaluation.failure}");
+            });
+
+            Run("OpenAI-compatible providers retain their endpoints", () =>
+            {
+                Assert(OpenAICompatibleProvider.OpenAI.Endpoint() == "https://api.openai.com/v1/chat/completions", "OpenAI endpoint");
+                Assert(OpenAICompatibleProvider.Groq.Endpoint() == "https://api.groq.com/openai/v1/chat/completions", "Groq endpoint");
+                Assert(OpenAICompatibleProvider.Grok.Endpoint() == "https://api.x.ai/v1/chat/completions", "Grok endpoint");
+                Assert(OpenAICompatibleProvider.Gemini.Endpoint() == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", "Gemini endpoint");
+                Assert(OpenAICompatibleProvider.Cerebras.Endpoint() == "https://api.cerebras.ai/v1/chat/completions", "Cerebras endpoint");
+                Assert(OpenAICompatibleProvider.Mistral.Endpoint() == "https://api.mistral.ai/v1/chat/completions", "Mistral endpoint");
+            });
+
+            Run("Anthropic keeps its required 8192 output limit", () =>
+            {
+                var requestJson = PostProcessingService.BuildAnthropicRequestJson("model", "system", "user");
+                using var request = JsonDocument.Parse(requestJson);
+                Assert(request.RootElement.GetProperty("max_tokens").GetInt32() == 8192, "Anthropic max_tokens should be 8192");
+            });
+
+            Run("Anthropic wire: max_tokens stop is rejected", () =>
+            {
+                const string raw = "complete raw transcript";
+                var evaluation = HyperwhisperCoreMethods.EvaluateLlmResponseJson(
+                    WireProtocol.AnthropicMessages,
+                    """{"content":[{"type":"text","text":"<<CLEANED>>partial<<END>>"}],"stop_reason":"max_tokens"}""",
+                    raw);
+
+                Assert(!evaluation.accepted, "max_tokens response should be rejected");
+                Assert(evaluation.text == raw, "raw transcript was not preserved");
+                Assert(evaluation.failure == CompletionFailure.OutputLimit, $"failure {evaluation.failure}");
+
+                Assert(HyperwhisperCoreMethods.NormalizeTermination(WireProtocol.AnthropicMessages, "end_turn") == CompletionState.Complete,
+                    "end_turn should be complete");
+                Assert(HyperwhisperCoreMethods.NormalizeTermination(WireProtocol.AnthropicMessages, "max_tokens") == CompletionState.OutputLimit,
+                    "max_tokens should be output-limited");
+            });
+
+            Run("Local/in-process completions (Unspecified state) require lenient acceptance", () =>
+            {
+                const string raw = "complete raw transcript";
+                var rejected = HyperwhisperCoreMethods.EvaluateCompletion(raw, "", CompletionState.Unspecified);
+                var accepted = HyperwhisperCoreMethods.EvaluateCompletion(raw, "<<CLEANED>>clean<<END>>", CompletionState.Unspecified);
+                var acceptedMarkerless = HyperwhisperCoreMethods.EvaluateCompletion(raw, "clean, no markers", CompletionState.Unspecified);
+
+                Assert(!rejected.accepted && rejected.text == raw, "empty unspecified response should preserve raw text");
+                Assert(accepted.accepted && accepted.text == "clean", "wrapped unspecified response should be accepted");
+                Assert(acceptedMarkerless.accepted && acceptedMarkerless.text == "clean, no markers",
+                    "markerless unspecified response should be accepted leniently");
+            });
+
+            Run("Local LLM reserves an 8192-token output without context shifting", () =>
+            {
+                Assert(LocalLlmService.MaxTokens == 8_192, "local output ceiling should be 8192");
+                Assert(LocalLlmService.ContextSize >= 16_384, "local context should be at least 16384");
+
+                var promptBudget = LocalLlmService.ContextSize
+                    - LocalLlmService.MaxTokens
+                    - LocalLlmService.ChatTemplateTokenReserve;
+                LocalLlmService.EnsureTokenBudgetFits(500, promptBudget - 500);
+
+                Expect<InvalidOperationException>(() =>
+                    LocalLlmService.EnsureTokenBudgetFits(500, promptBudget - 499));
             });
 
             RunAsync("RustRetry caps transport failures at 4 and resolves the client per attempt", async () =>
@@ -254,6 +412,19 @@ internal static class Program
         try
         {
             await action();
+        }
+        catch (T expected)
+        {
+            return expected;
+        }
+        throw new InvalidOperationException($"expected {typeof(T).Name} was not thrown");
+    }
+
+    private static T Expect<T>(Action action) where T : Exception
+    {
+        try
+        {
+            action();
         }
         catch (T expected)
         {
