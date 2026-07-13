@@ -81,7 +81,6 @@
 
 // MARK: - Sidebar Navigation
 "sidebar.home" = "Αρχική";
-"sidebar.statistics" = "Στατιστικά";
 "sidebar.modes" = "Λειτουργίες";
 "sidebar.vocabulary" = "Λεξιλόγιο";
 "sidebar.streaming" = "Ροή";
@@ -133,6 +132,9 @@
 "home.recent.updates.version" = "Έκδοση %@";
 "home.recent.updates.new.badge" = "ΝΕΟ";
 "home.recent.updates.no.notes" = "Καμία σημείωση κυκλοφορίας διαθέσιμη";
+"home.stats.words.week" = "Λέξεις αυτή την εβδομάδα";
+"home.stats.words.month" = "Λέξεις αυτόν τον μήνα";
+"home.stats.speed" = "Μέση ταχύτητα";
 
 // MARK: - Keyboard Labels
 "keyboard.escape" = "Esc";
@@ -169,7 +171,6 @@
 
 // MARK: - Sidebar Help Text
 "sidebar.home.help" = "Ξεκινήστε με το HyperWhisper";
-"sidebar.statistics.help" = "Δείτε τα στατιστικά χρήσης και ανάλυση";
 "sidebar.modes.help" = "Διαχειρίστε τις λειτουργίες μεταγραφής για διαφορετικά πλαίσια";
 "sidebar.vocabulary.help" = "Προσθέστε προσαρμοσμένες λέξεις και φράσεις για καλύτερη αναγνώριση";
 "sidebar.streaming.help" = "Ρυθμίσεις ροής ρεμάτων σε πραγματικό χρόνο (απαιτείται Διαδίκτυο)";
@@ -492,6 +493,9 @@
 "settings.models.localPostProcessing.memoryWarning" = "Συνιστάται για Mac με 24 GB ενοποιημένης μνήμης ή περισσότερο. Η ταχύτητα εξαρτάται από το chip — ταχύτερο σε M3/M4 Pro και άνω.";
 "settings.shortcuts.pushToTalk.mode.fnControl" = "FN + Control";
 "home.stats.words.year" = "Λέξεις φέτος";
+"home.stats.typing.speed.help" = "Προσαρμόστε την εκτιμώμενη ταχύτητα πληκτρολόγησης (WPM) που χρησιμοποιείται για τον υπολογισμό του χρόνου που εξοικονομείται.";
+"home.stats.saved.week" = "Εξοικονομήθηκαν αυτή την εβδομάδα";
+"home.stats.minutes.value" = "%d λεπτά";
 "vocabulary.input.placeholder" = "Προσθέστε λέξη ή δημιουργήστε απόσπασμα";
 "vocabulary.action.addWord" = "Προσθήκη λέξης";
 "vocabulary.action.replaceWith" = "Αντικατάσταση με…";
@@ -553,22 +557,6 @@
 "models.error.checksumFailed" = "Η επαλήθευση ελέγχου μοντέλου απέτυχε. Η λήψη μπορεί να είναι κατεστραμμένη.";
 
 // MARK: - Statistics View
-"statistics.title" = "Στατιστικά";
-"statistics.header.title" = "Τα Στατιστικά Χρήσης σας";
-"statistics.header.subtitle" = "Παρακολουθήστε τη δραστηριότητα μεταγραφής και την απόδοση";
-"statistics.card.recordings" = "Σύνολο Εγγραφών";
-"statistics.card.recordings.subtitle" = "Ολοκληρωμένες μεταγραφές";
-"statistics.card.duration" = "Συνολικός Χρόνος";
-"statistics.card.duration.subtitle" = "Χρόνος ξοδεμένος στην εγγραφή";
-"statistics.card.words" = "Σύνολο Λέξεων";
-"statistics.card.words.subtitle" = "Λέξεις μεταγραφείες";
-"statistics.card.average" = "Μέση Διάρκεια";
-"statistics.card.average.subtitle" = "Ανά εγγραφή";
-"statistics.graph.title" = "Δραστηριότητα Κατά τη Διάρκεια του Χρόνου";
-"statistics.daily.empty" = "Καμία εγγραφή ακόμα";
-"statistics.filter.week" = "Αυτή τη Εβδομάδα";
-"statistics.filter.month" = "Αυτό το Μήνα";
-"statistics.filter.alltime" = "Όλες τις Ώρες";
 
 // MARK: - History View
 "history.title" = "Ιστορικό";
@@ -689,8 +677,13 @@
 "modes.cloudAccuracy.groqWhisper.description" = "Γρήγορο και οικονομικό. Καλύτερο για γρήγορες μεταγραφές.";
 "modes.cloudAccuracy.deepgramNova3.description" = "Ισορροπημένη ταχύτητα και ακρίβεια. Συνιστάται για τους περισσότερους χρήστες.";
 "modes.cloudAccuracy.elevenLabsScribeV2.description" = "ElevenLabs Scribe v2 - Υψηλότερη ακρίβεια με αργότερη επεξεργασία. Καλύτερο για σημαντικές μεταγραφές.";
+"modes.cloudAccuracy.creditsPerMinute" = "~%@ πιστώσεις/λεπτό";
 "modes.cloudAccuracy.grokStt.label" = "Υψηλότερο (Grok SST)";
 "modes.cloudAccuracy.grokStt.description" = "xAI Grok STT - Υψηλότερη ακρίβεια με αργότερη επεξεργασία. Καλύτερο για σημαντικές μεταγραφές.";
+"modes.cloudAccuracy.googleChirp3.label" = "Υψηλή (Google Chirp 3)";
+"modes.cloudAccuracy.googleChirp3.description" = "Google Cloud Speech-to-Text V2 με Chirp 3. Πολύγλωσσο, με προσαρμογή φράσεων.";
+"modes.cloudAccuracy.azureMaiTranscribe.label" = "Υψηλή (Microsoft MAI-Transcribe 1.5)";
+"modes.cloudAccuracy.azureMaiTranscribe.description" = "Microsoft MAI-Transcribe 1.5 μέσω Azure Speech. 43 γλώσσες με προσαρμογή βάσει συμφραζομένων.";
 
 "modes.create.title" = "Δημιουργία Νέας Λειτουργίας";
 "modes.create.subtitle" = "Διαμόρφωση ενός προσαρμοσμένου προφίλ μεταγραφής";
@@ -901,6 +894,15 @@
 "transcription.guidance.timeout" = "Το αίτημα χρειάστηκε πολύ χρόνο. Ελέγξτε την ταχύτητα του διαδικτύου σας και δοκιμάστε ξανά.";
 "transcription.error.noSpeechDetected" = "Δεν ανιχνεύθηκε ομιλία στην εγγραφή.";
 "transcription.guidance.noSpeechDetected" = "Συμβουλές:\n• Μιλήστε καθαρά στο μικροφώνο\n• Κρατήστε το πλήκτρο περισσότερο πριν μιλήσετε\n• Ελέγξτε ότι το μικροφώνο σας λειτουργεί\n• Βεβαιωθείτε ότι είναι επιλεγμένη η σωστή συσκευή εισόδου";
+"transcription.guidance.needsNativeRelaunch" = "Κλείστε και ανοίξτε ξανά το HyperWhisper σε εγγενή λειτουργία για να χρησιμοποιήσετε την τοπική μετεπεξεργασία.";
+"transcription.guidance.localRuntimeUnavailable" = "Δοκιμάστε ξανά ή επιλέξτε μικρότερο τοπικό μοντέλο στις ρυθμίσεις της Λειτουργίας.";
+"transcription.error.localRuntimeUnavailable" = "Το τοπικό AI δεν μπόρεσε να ολοκληρώσει — η αρχική απομαγνητοφώνηση διατηρήθηκε.";
+"settings.backup.localDownload.title" = "Λήψη τοπικών μοντέλων;";
+"settings.backup.localDownload.message" = "%d από τις λειτουργίες που επαναφέρατε χρησιμοποιούν μοντέλα AI στη συσκευή τα οποία δεν έχουν ληφθεί ακόμη.";
+"settings.backup.localDownload.downloadAll" = "Λήψη όλων";
+"settings.backup.localDownload.dismiss" = "Παράβλεψη";
+"modelLibrary.local.requiresAppleSilicon" = "Απαιτεί Apple Silicon";
+"modelLibrary.local.needsNativeRelaunch" = "Επανεκκίνηση σε εγγενή λειτουργία";
 
 // MARK: - HyperWhisper Cloud Errors
 "hyperwhisperCloud.error.insufficientCredits" = "Ανεπαρκείς πιστώσεις. Προσθέστε περισσότερες πιστώσεις στις Ρυθμίσεις.";
