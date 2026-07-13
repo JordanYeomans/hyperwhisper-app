@@ -238,7 +238,7 @@ extension TranscriptionPipeline {
                 if let processor = self.aiPostProcessor {
                     let providerName = resolvedPostProcessingProvider?.displayName ?? resolvedPostProcessingProviderId
                     AppLogger.transcription.info("✅ Starting AI post-processing with provider: \(providerName, privacy: .public)")
-                    aiProcessedText = try await processor.performAIPostProcessingStreaming(
+                    aiProcessedText = try await processor.performAIPostProcessingPreservingBreaks(
                         text: text,
                         mode: mode,
                         applicationContext: applicationContext
@@ -257,9 +257,13 @@ extension TranscriptionPipeline {
                 } else {
                     AppLogger.transcription.info("ℹ️ Post-processing skipped (mode setting = \(mode?.postProcessingMode ?? -1) or nil mode)")
                 }
-                finalText = settingsManager?.removeFillerWords == false
+                let withoutFillers = settingsManager?.removeFillerWords == false
                     ? text
                     : TranscriptionTextProcessing.removeFillerWords(text, language: detectedLanguage ?? languageArg)
+                // Honor dictated break commands ("new line" / "new paragraph")
+                // in the batch path too — they were streaming-only, so with AI
+                // post-processing off they were silently dropped (issue #1).
+                finalText = TranscriptionTextProcessing.processVoiceCommands(withoutFillers)
             }
 
             markStage("cache_result")
