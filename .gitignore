@@ -1,6 +1,12 @@
 .derived/
 .claude/settings.local.json
 
+# Local scratch: agent run logs, temp scripts, local build config. Never committed.
+.local/
+
+# Coverage artifacts emitted next to the build; never part of a change.
+default.profraw
+
 # Windows / .NET
 bin/
 obj/
