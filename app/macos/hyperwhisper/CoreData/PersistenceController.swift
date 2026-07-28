@@ -209,11 +209,20 @@ class PersistenceController: ObservableObject {
             // loads as a plain local SQLite file — vocabulary still works, it just
             // doesn't leave the device. History tracking + remote-change options stay
             // on regardless so flipping the toggle later requires no store reshuffle.
-            if UserDefaults.standard.bool(forKey: Self.vocabularyCloudSyncEnabledDefaultsKey) {
+            // The entitlement check is a hard prerequisite, not a nicety: attaching
+            // CloudKit options without `com.apple.developer.icloud-container-identifiers`
+            // makes CloudKit trap (EXC_BREAKPOINT) during store load rather than
+            // returning an error, so the app cannot start. Builds that lack the
+            // entitlement fall back to a local-only store instead of crashing.
+            let syncRequested = UserDefaults.standard.bool(forKey: Self.vocabularyCloudSyncEnabledDefaultsKey)
+
+            if syncRequested && CloudKitEntitlement.isPresent {
                 cloudDescription.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
                     containerIdentifier: Self.cloudKitContainerIdentifier
                 )
                 AppLogger.coreData.info("iCloud vocabulary sync enabled — CloudKit mirror attached to cloud store")
+            } else if syncRequested {
+                AppLogger.coreData.error("iCloud vocabulary sync requested but this build lacks the iCloud container entitlement — running cloud store as local-only SQLite to avoid a CloudKit trap")
             } else {
                 AppLogger.coreData.info("iCloud vocabulary sync disabled — cloud store will run as local-only SQLite")
             }
