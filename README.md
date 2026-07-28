@@ -81,16 +81,23 @@ git submodule update --init --recursive
 
 Each app has its own setup; see the per-directory `AGENTS.md` for details.
 
-- **macOS** — open `app/macos/hyperwhisper.xcodeproj` in Xcode and run (⌘R).
-  Dependencies resolve via Swift Package Manager. Requires macOS 14+.
+- **macOS** — `cd app/macos && ./scripts/build-local.sh --run`. Dependencies
+  resolve via Swift Package Manager. Requires macOS 14+ and an Apple Development
+  certificate (a free Apple ID is enough). Building straight from Xcode (⌘R)
+  fails on a fresh clone because the project is pinned to the release signing
+  profile — see
+  [`app/macos/dev-docs/building-from-source.md`](app/macos/dev-docs/building-from-source.md)
+  for that and other first-run issues.
 - **Windows** — `dotnet run -c Debug` from `app/windows/HyperWhisper/`. Requires
   the .NET 10 SDK on Windows. See `app/windows/AGENTS.md` for installer builds.
 - **Web** — `npm install && npm run dev` in `nextjs/`. Local builds use
   `SKIP_ENV_VALIDATION=1 npm run build`.
 
-Building official, signed/notarized releases additionally requires signing
-credentials and a Sentry DSN, injected from CI secrets — these are not needed to
-build and run from source.
+Building official, signed/notarized releases additionally requires the release
+signing credentials and a Sentry DSN, injected from CI secrets. Building from
+source does not need those, but macOS does require *some* signing identity of
+your own — the guide above explains why an Apple Development certificate is
+strongly preferred over ad-hoc signing.
 
 ## Third-party components
 

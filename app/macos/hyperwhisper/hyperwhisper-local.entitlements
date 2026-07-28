@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LOCAL DEVELOPMENT ENTITLEMENTS
+
+  For building and running from source with your own Apple Development
+  certificate. Used by scripts/build-local.sh.
+
+  This is hyperwhisper-dev.entitlements with the iCloud / CloudKit keys removed.
+  Those keys name the container `iCloud.com.hyperwhisper.hyperwhisper`, which can
+  only be provisioned by the team that owns it; requesting it from any other team
+  fails the build with "Signing for hyperwhisper requires a development team".
+
+  Consequence: iCloud vocabulary sync is unavailable in local builds, and the
+  toggle is shown as disabled. Vocabulary still works — it just stays on the
+  device. Everything else, including local and cloud transcription, is unaffected.
+
+  See dev-docs/building-from-source.md.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<key>com.apple.security.get-task-allow</key>
+	<true/>
+	<!-- DEV ONLY: keeps debug tooling (dylib injection, instrumentation) working.
+	     Intentionally omitted from release entitlements — see issue #270. -->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+	<!-- Required for the Quick Capture flow, which uses NSAppleScript to ask
+	     Notes.app to create a note. Without it NSAppleScript returns
+	     errAEEventNotPermitted (-1743) instead of triggering the TCC prompt. -->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+</dict>
+</plist>
