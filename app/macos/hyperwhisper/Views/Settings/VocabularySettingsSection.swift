@@ -20,6 +20,14 @@ struct VocabularySettingsSection: View {
     /// Controls the "Quit HyperWhisper to apply" alert shown after toggling sync.
     @State private var showRestartAlert = false
 
+    /// Whether this build can use CloudKit at all. Builds without the iCloud
+    /// container entitlement (ad-hoc/self-signed local builds, forks that cannot
+    /// provision the upstream container) would trap inside CloudKit on the next
+    /// launch, so the toggle is presented as unavailable rather than offering a
+    /// switch that guarantees a crash. `PersistenceController` enforces the same
+    /// condition, so a stale `true` preference is also safe.
+    private let cloudKitAvailable = CloudKitEntitlement.isPresent
+
     var body: some View {
         SettingsSection(title: "settings.section.vocabulary") {
             iCloudSyncCard
@@ -54,6 +62,8 @@ struct VocabularySettingsSection: View {
                 ),
                 standalone: false
             )
+            .disabled(!cloudKitAvailable)
+            .opacity(cloudKitAvailable ? 1 : 0.5)
         }
     }
 }
